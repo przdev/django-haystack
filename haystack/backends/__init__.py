@@ -481,6 +481,7 @@ class BaseSearchQuery:
         self.facets = {}
         self.date_facets = {}
         self.query_facets = []
+        self.range_facets = {}
         self.narrow_queries = set()
         #: If defined, fields should be a list of field names - no other values
         #: will be retrieved so the caller must be careful to include django_ct
@@ -547,6 +548,9 @@ class BaseSearchQuery:
 
         if self.date_facets:
             kwargs["date_facets"] = self.date_facets
+
+        if self.range_facets:
+            kwargs["range_facets"] = self.range_facets
 
         if self.query_facets:
             kwargs["query_facets"] = self.query_facets
@@ -958,9 +962,18 @@ class BaseSearchQuery:
             "gap_by": gap_by,
             "gap_amount": gap_amount,
         }
-        self.date_facets[
-            connections[self._using].get_unified_index().get_facet_fieldname(field)
-        ] = details
+        self.date_facets[connections[self._using].get_unified_index().get_facet_fieldname(field)] = details
+
+    def add_range_facet(self, field, range_start, range_end, range_gap=1):
+        from haystack import connections
+
+        details = {
+            "start": range_start,
+            "end": range_end,
+            "gap": range_gap,
+        }
+        self.range_facets[connections[self._using].get_unified_index().get_facet_fieldname(field)] = details
+
 
     def add_query_facet(self, field, query):
         """Adds a query facet on a field."""
@@ -1055,6 +1068,7 @@ class BaseSearchQuery:
         clone.stats = self.stats.copy()
         clone.facets = self.facets.copy()
         clone.date_facets = self.date_facets.copy()
+        clone.range_facets = self.range_facets.copy()
         clone.query_facets = self.query_facets[:]
         clone.narrow_queries = self.narrow_queries.copy()
         clone.start_offset = self.start_offset
